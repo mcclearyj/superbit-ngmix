@@ -1,5 +1,5 @@
 # superbit-ngmix
-running ngmix on SuperBIT data
+package originally designed for running ngmix on SuperBIT data, now adapted to run on DECam data
 
 Py3 required to run
 
@@ -9,9 +9,9 @@ The following python packages are required to run:
   - `meds`
   - `astropy`
   - `fitsio`
-  - `psfex` (AstrOmatic) 
-  - `sextractor` (AstrOmatic) 
-  - `swarp` (AstrOmatic) 
+  - `psfex` (AstrOmatic; don't use conda forge) 
+  - `sextractor` (AstrOmatic; don't use conda forge) 
+  - `swarp` (AstrOmatic; don't use conda forge) 
 
 If using conda to manage python installation, packages can be installed with e.g.
 
