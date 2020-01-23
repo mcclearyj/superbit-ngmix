@@ -14,19 +14,18 @@ if not os.path.exists('../Data/calib'):
     os.mkdir('../Data/calib')
 
 # This is picking out only Luminance images
-science = glob.glob('/Users/jemcclea/Research/SuperBIT_2019/superbit-ngmix/WCS_images/image*_???_WCS.fits')
-flats = glob.glob('/Users/jemcclea/Research/SuperBIT_2019/A2218/FlatImages/*')
-biases = glob.glob('/Users/jemcclea/Research/SuperBIT_2019/A2218/BiasImages/*')
-darks = glob.glob('/Users/jemcclea/Research/SuperBIT_2019/A2218/DarkImages/*')
+science = glob.glob('/users/jmcclear/scratch/A2457_data/*ooi_r_v1.fits.fz')
+flats = glob.glob('/users/jmcclear/scratch/A2457_data/*oow_r_v1.fits.fz') # this is actually weights but w/e
+darks = glob.glob('/users/jmcclear/scratch/A2457_data/*ood_r_v1.fits.fz')
 try:
     bm = medsmaker.BITMeasurement(image_files=science,flat_files=flats, dark_files=darks, bias_files=biases)
     # The path names should be updated; as written the code also expects all
     # calibration files to be in the same directory
 
-    """
     bm.set_working_dir()
-    bm.set_path_to_calib_data(path='/Users/jemcclea/Research/SuperBIT_2019/A2218/')
-    bm.set_path_to_science_data(path='/Users/jemcclea/Research/SuperBIT_2019/A2218/ScienceImages/')
+    bm.set_path_to_calib_data(path='/users/jmcclear/scratch/A2457_data/')
+    bm.set_path_to_science_data(path='/users/jmcclear/scratch/A2457_data/')
+    """
     bm.reduce(overwrite=False)
     bm.make_mask(overwrite=False)
     bm.make_catalog(source_selection = True)
@@ -35,7 +34,7 @@ try:
     image_info = bm.make_image_info_struct()
     obj_info = bm.make_object_info_struct()
     """
-    bm.run(clobber=False,source_selection = True)
+    #bm.run(outfile="a2457.meds",clobber=True,source_selection = True)
 
 except:
     thingtype, value, tb = sys.exc_info()

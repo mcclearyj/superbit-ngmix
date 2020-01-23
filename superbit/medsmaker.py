@@ -72,6 +72,7 @@ class BITMeasurement():
             self.psf_path = path
 
 
+    
     def set_path_to_science_data(self,path=None):
         if path is None:
             self.science_path = '../Data/timmins2019/raw'
@@ -227,22 +228,9 @@ class BITMeasurement():
             outfile = fits.PrimaryHDU(darkmask.reshape(np.shape(mdark)))
             outfile.writeto(os.path.join(self.work_path,'darkmask.fits'),overwrite=True)
 
-            # repeat for flat
-            med_flat_array=[]
-            flattened=np.ravel(mflat)
-            outrav=np.zeros(mflat.size)
-            outrav[flattened<=global_flat_thresh]=1
-            med_flat_array.append(outrav)
-            sum_flat = np.sum(med_flat_array,axis=0)
-            # This transforms our bpm=1 array to a bpm=0 array
-            flatmask=np.ones(sum_flat.size)
-            #darkmask[sum_dark==(len(dark_files))]=0
-            flatmask[sum_flat==1]=0
-            outfile = fits.PrimaryHDU(flatmask.reshape(np.shape(mflat)))
-            outfile.writeto(os.path.join(self.work_path,'flatmask.fits'),overwrite=True)
-
+ 
             # Now generate actual mask
-            supermask = (darkmask + flatmask)/2.
+            supermask = dark_mask
             outfile = fits.PrimaryHDU(flatmask.reshape(np.shape(mflat)))
             outfile.writeto(os.path.join(self.work_path,'supermask.fits'),overwrite=True)
 
@@ -467,14 +455,9 @@ class BITMeasurement():
         self.set_working_dir()
         self.set_psf_dir()
 
-        #self.set_path_to_science_data()
-        # Add a WCS to the science
-        #self.add_wcs_to_science_frames()
-        # Reduce the data.
-        self.reduce(overwrite=clobber)
-        # Make a mask.
         # NB: can also read in a pre-existing mask by setting self.mask_file
-        self.make_mask(overwrite=clobber)
+        #self.make_mask(overwrite=clobber)
+        
         # Combine images, make a catalog.
         self.make_catalog(source_selection=source_selection)
         # Build a PSF model for each image.
