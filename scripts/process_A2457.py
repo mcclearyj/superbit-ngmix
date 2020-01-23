@@ -18,7 +18,7 @@ science = glob.glob('/users/jmcclear/scratch/A2457_data/*ooi_r_v1.fits.fz')
 flats = glob.glob('/users/jmcclear/scratch/A2457_data/*oow_r_v1.fits.fz') # this is actually weights but w/e
 darks = glob.glob('/users/jmcclear/scratch/A2457_data/*ood_r_v1.fits.fz')
 try:
-    bm = medsmaker.BITMeasurement(image_files=science,flat_files=flats, dark_files=darks, bias_files=biases)
+    bm = medsmaker.BITMeasurement(image_files=science,flat_files=flats, dark_files=darks)
     # The path names should be updated; as written the code also expects all
     # calibration files to be in the same directory
 
