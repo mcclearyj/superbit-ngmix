@@ -14,23 +14,24 @@ if not os.path.exists('../Data/calib'):
     os.mkdir('../Data/calib')
 
 # This is picking out only Luminance images
-science = glob.glob('/users/jmcclear/scratch/A2457_data/*ooi_r_v1.fits.fz')
-flats = glob.glob('/users/jmcclear/scratch/A2457_data/*oow_r_v1.fits.fz') # this is actually weights but w/e
-darks = glob.glob('/users/jmcclear/scratch/A2457_data/*ood_r_v1.fits.fz')
+science = glob.glob('/users/jmcclear/scratch/A2457_data/c4d_141024_010*ooi_r_v1.fits')
+weights = glob.glob('/users/jmcclear/scratch/A2457_data/c4d_141024_010*oow_r_v1.fits') # this is actually weights but w/e
+darks = glob.glob('/users/jmcclear/scratch/A2457_data/c4d_141024_010*ood_r_v1.fits')
 try:
-    bm = medsmaker.BITMeasurement(image_files=science,flat_files=flats, dark_files=darks)
+    bm = medsmaker.BITMeasurement(image_files=science,weight_files=weights, dark_files=darks)
     # The path names should be updated; as written the code also expects all
     # calibration files to be in the same directory
 
     bm.set_working_dir()
     bm.set_path_to_calib_data(path='/users/jmcclear/scratch/A2457_data/')
     bm.set_path_to_science_data(path='/users/jmcclear/scratch/A2457_data/')
-    """
-    bm.reduce(overwrite=False)
-    bm.make_mask(overwrite=False)
+
+    #bm.reduce(overwrite=False)
+    #bm.make_mask(overwrite=False)
     bm.make_catalog(source_selection = True)
 
     bm.make_psf_models()
+    """
     image_info = bm.make_image_info_struct()
     obj_info = bm.make_object_info_struct()
     """

@@ -35,17 +35,17 @@ TO DO:
 
 
 class BITMeasurement():
-    def __init__(self, image_files = None, flat_files = None, dark_files = None, bias_files= None):
+    def __init__(self, image_files = None, weight_files = None, dark_files = None):
         '''
         :image_files: Python List of image filenames; must be complete relative or absolute path.
-        :flat_files: Python List of image filenames; must be complete relative or absolute path.
-        :dark_files: Python List of image filenames; must be complete relative or absolute path.
+        :weight_files: Python List of weight filenames; must be complete relative or absolute path.
+        :dark_files: Python List of dark filenames; must be complete relative or absolute path.
         '''
 
         self.image_files = image_files
-        self.flat_files = flat_files
+        self.weight_files = weight_files
         self.dark_files = dark_files
-        self.bias_files = bias_files
+
 
     def set_working_dir(self,path=None):
         if path is None:
@@ -247,10 +247,13 @@ class BITMeasurement():
         ### Code to run SWARP
 
         image_args = ' '.join(self.image_files)
+        weight_arg = '-WEIGHT_IMAGE '+' '.join(self.weight_files)
         detection_file = os.path.join(self.work_path,outfile_name) # This is coadd
         weight_file = os.path.join(self.work_path,weightout_name) # This is coadd weight
+        
         config_arg = '-c ../superbit/astro_config/swarp.config'
-        weight_arg = '-WEIGHT_IMAGE '+self.mask_file
+        #config_arg = '-HEADER_ONLY N -WEIGHT_TYPE MAP_WEIGHT'
+        
         outfile_arg = '-IMAGEOUT_NAME '+ detection_file + ' -WEIGHTOUT_NAME ' + weight_file
         cmd = ' '.join(['swarp ',image_args,weight_arg,outfile_arg,config_arg])
         print("swarp cmd is " + cmd)
@@ -285,7 +288,7 @@ class BITMeasurement():
         Wrapper for astromatic tools to make catalog from provided images.
         This returns catalog for (stacked) detection image
         '''
-        detection_file, weight_file= self._make_detection_image(outfile_name='A2218_coadd.fits',weightout_name='A2218_coadd.weight.fits')
+        detection_file, weight_file= self._make_detection_image(outfile_name='A2457_coadd.fits',weightout_name='A2457_coadd.weight.fits')
         # Now for the million args...
         config_arg = sextractor_config_path+'sextractor.config'
         param_arg = '-PARAMETERS_NAME '+sextractor_config_path+'sextractor.param'
