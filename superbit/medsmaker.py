@@ -246,8 +246,19 @@ class BITMeasurement():
         '''
         ### Code to run SWARP
 
-        image_args = ' '.join(self.image_files)
-        weight_arg = '-WEIGHT_IMAGE '+' '.join(self.weight_files)
+        ###### Note that it is necessary to join the individual image/weight files (really the weights)
+        ###### into a list for swarping
+
+        with open('./inlist', 'w') as filehandle:
+            for listitem in self.image_files:
+                filehandle.write('%s\n' % listitem)
+        with open('./inlist_weights', 'w') as filehandle:
+            for listitem in self.weight_files:
+                filehandle.write('%s\n' % listitem)
+
+        image_args = '@./inlist'
+        weight_arg = '-WEIGHT_IMAGE @./inlist_weights'
+
         detection_file = os.path.join(self.work_path,outfile_name) # This is coadd
         weight_file = os.path.join(self.work_path,weightout_name) # This is coadd weight
         
@@ -288,14 +299,17 @@ class BITMeasurement():
         Wrapper for astromatic tools to make catalog from provided images.
         This returns catalog for (stacked) detection image
         '''
-        detection_file, weight_file= self._make_detection_image(outfile_name='A2457_coadd.fits',weightout_name='A2457_coadd.weight.fits')
+        #detection_file, weight_file= self._make_detection_image(outfile_name='A2457_coadd.fits',weightout_name='A2457_coadd.weight.fits')
         # Now for the million args...
+        detection_file='./tmp/A2457_coadd.fits'; weight_file='./tmp/A2457_coadd.weight.fits'
+        
         config_arg = sextractor_config_path+'sextractor.config'
         param_arg = '-PARAMETERS_NAME '+sextractor_config_path+'sextractor.param'
         nnw_arg = '-STARNNW_NAME '+sextractor_config_path+'default.nnw'
         filter_arg = '-FILTER_NAME '+sextractor_config_path+'default.conv'
         cmd = ' '.join(['sex',detection_file,'-WEIGHT_IMAGE',weight_file,param_arg,nnw_arg,filter_arg,'-c',config_arg])
         print("sex cmd is " + cmd)
+        
         os.system(cmd)
         try:
             le_cat = fits.open('coadd_catalog.fits')
@@ -305,14 +319,30 @@ class BITMeasurement():
         except:
             print("coadd catalog could not be loaded; check name?")
             pdb.set_trace()
+            
 
     def make_psf_models(self):
 
+        """ 
+        Start by making reference star file for later psfcat matching 
+        This arrangement is special to DECam data of a single cluster, 
+        where all images will have roughly the same center
+        """
+        hdr = fits.getheader(self.image_files[0])
+        coord = astropy.coordinates.SkyCoord(hdr['CRVAL1'],hdr['CRVAL2'],unit='deg')
+        result = Gaia.cone_search_async(coord,radius=1.2*u.degree)
+        catalog = result.get_data()
+        catalog_wg = catalog[catalog['parallax'] >= catalog['parallax_error']]
+
+        """
+        now do actual PSF modelling
+        """
+
         self.psfEx_models = []
+        i=0
         for imagefile in self.image_files:
-            #update as necessary
-            weightfile=self.mask_file
-            psfex_model_file = self._make_psf_model(imagefile,weightfile = weightfile)
+            weightfile=self.weight_files[i]
+            psfex_model_file = self._make_psf_model(imagefile,weightfile = weightfile,star_reference=catalog_wg)
             # move checkimages to psfex_output
             cmd = ' '.join(['mv chi* resi* samp* snap* proto*',self.psf_path])
             os.system(cmd)
@@ -322,13 +352,13 @@ class BITMeasurement():
             except:
                 pdb.set_trace()
 
-    def _make_psf_model(self,imagefile,weightfile = 'weight.fits',sextractor_config_path = '../superbit/astro_config/',psfex_out_dir='./tmp/'):
+    def _make_psf_model(self,imagefile,weightfile = 'weight.fits',sextractor_config_path = '../superbit/astro_config/',psfex_out_dir='./tmp/',star_reference=None):
         '''
         Gets called by make_psf_models for every image in self.image_files
         Wrapper for PSFEx. Requires a FITS-LDAC format catalog with vignettes
         '''
+
         # First, run SExtractor.
-        # Hopefully imagefile is an absolute path!
         sextractor_config_file = sextractor_config_path+'sextractor.config'
         sextractor_param_arg = '-PARAMETERS_NAME '+sextractor_config_path+'sextractor.param'
         sextractor_nnw_arg = '-STARNNW_NAME '+sextractor_config_path+'default.nnw'
@@ -339,19 +369,20 @@ class BITMeasurement():
         os.system(cmd)
 
         # Get a "clean" star catalog for PSFEx input
-        psfcat_name = self._select_stars_for_psf(sscat=imcat_ldac_name,imfile=imagefile)
-
+        psfcat_name = self._select_stars_for_psf(sscat=imcat_ldac_name,imfile=imagefile,star_ref=star_reference)
         # Now run PSFEx on that image and accompanying catalog
         psfex_config_arg = '-c '+sextractor_config_path+'psfex.config'
         # Will need to make that tmp/psfex_output generalizable
         cmd = ' '.join(['psfex', psfcat_name,psfex_config_arg,'-PSFVAR_DEGREES','5','-PSF_DIR', self.psf_path])
         print("psfex cmd is " + cmd)
         os.system(cmd)
-        psfex_model_file=(imcat_ldac_name.replace('.ldac','.psf')).replace('./tmp',self.psf_path)
+
         # Just return name, the make_psf_models method reads it in as a PSFEx object
+        #psfex_model_file=(imcat_ldac_name.replace('.ldac','.psf')).replace('./tmp',self.psf_path)
+        psfex_model_file = self.psf_path+'/'+imcat_ldac_name.split('/')[-1].replace('.ldac','.psf')
         return psfex_model_file
 
-    def _select_stars_for_psf(self,sscat,imfile):
+    def _select_stars_for_psf(self,sscat,imfile,star_ref=None):
         '''
         method to obtain stars from SExtractor catalog by comparing to GAIA
             sscat : input ldac-format catalog from which to select stars
@@ -359,15 +390,10 @@ class BITMeasurement():
         '''
         # Read in header, get catalog of GAIA sources that overlap the field, ish.
 
-        hdr = fits.getheader(imfile)
-        coord = astropy.coordinates.SkyCoord(hdr['CRVAL1'],hdr['CRVAL2'],unit='deg')
-        result = Gaia.cone_search_async(coord,radius=14*u.arcminute)
-        catalog = result.get_data()
-        catalog_wg = catalog[catalog['parallax'] >= catalog['parallax_error']]
         # get RA/Dec of input catalog, cross-match against GAIA
         ss = fits.open(sscat)
         sexmatcher = eu.htm.Matcher(16, ra=ss[2].data['ALPHAWIN_J2000'], dec = ss[2].data['DELTAWIN_J2000'])
-        gaia_matches, sexmatches, dist = sexmatcher.match(catalog_wg['ra'],catalog_wg['dec'],radius = 6E-4,maxmatch=1)
+        gaia_matches, sexmatches, dist = sexmatcher.match(star_ref['ra'],star_ref['dec'],radius = 6E-4,maxmatch=1)
         # Save result to file, return filename
         outname = sscat.replace('.ldac','.star')
         ss[2].data=ss[2].data[sexmatches]
@@ -387,9 +413,9 @@ class BITMeasurement():
             image_info[i]['image_ext'] = 0
             #image_info[i]['weight_path'] = self.weight_file
             # FOR NOW:
-            image_info[i]['weight_path'] = self.mask_file
+            image_info[i]['weight_path'] = self.weight_files[i]
             image_info[i]['weight_ext'] = 0
-            image_info[i]['bmask_path'] = self.mask_file
+            image_info[i]['bmask_path'] = self.weight_files[i]
             image_info[i]['bmask_ext'] = 0
             i+=1
         return image_info

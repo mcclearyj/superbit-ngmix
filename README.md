@@ -20,3 +20,9 @@ If using conda to manage python installation, packages can be installed with e.g
 NOTE: `psfex` needs to be installed with git to be a python module, i.e.,
 `git clone https://github.com/esheldon/psfex.git`
 
+
+NOTE 2:
+
+The default `fitsio` module used by `MEDS` does not work for DECam images.
+Modify line 840 in `meds.py` to read in headers with astropy.fits e.g.
+`wcs_data = astropy.io.fits.getheader(impath, ext=ext)`
