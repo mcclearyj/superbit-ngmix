@@ -10,7 +10,7 @@ weight_type: 'weight'
 
 trim_images:
     min_size: 32
-    max_size: 64
+    max_size: 128
 
 # gaussian aperture weighted fluxes
 gap:
@@ -77,7 +77,8 @@ fofs:
 
 mof:
 
-    model: 'bdf'
+    # model: 'bdf'
+    model: 'exp'
     # use_input_guesses: True
 
     # number of times to try the fit if it fails

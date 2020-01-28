@@ -14,9 +14,9 @@ if not os.path.exists('../Data/calib'):
     os.mkdir('../Data/calib')
 
 # This is picking out only Luminance images
-science = glob.glob('/users/jmcclear/scratch/A2457_data/c4d_141024_0[1-2]*_ooi_r_v1_8.fits')
-weights = glob.glob('/users/jmcclear/scratch/A2457_data/c4d_141024_0[1-2]*_oow_r_v1_8.fits') # this is actually weights but w/e
-darks = glob.glob('/users/jmcclear/scratch/A2457_data/c4d_141024_01[1-2]*ood_r_v1_8.fits')
+science = glob.glob('/users/jmcclear/scratch/A2457_data/c4d_141024_*ooi_r_v1_*.fits')
+weights = glob.glob('/users/jmcclear/scratch/A2457_data/c4d_141024_*oow_r_v1_*.fits') # this is actually weights but w/e
+darks = glob.glob('/users/jmcclear/scratch/A2457_data/c4d_141024_*ood_r_v1_*.fits')
 try:
     bm = medsmaker.BITMeasurement(image_files=science,weight_files=weights, dark_files=darks)
     # The path names should be updated; as written the code also expects all
@@ -37,7 +37,7 @@ try:
     image_info = bm.make_image_info_struct()
     obj_info = bm.make_object_info_struct()
     """
-    bm.run(outfile="a2457.meds",clobber=True,source_selection = True)
+    bm.run(outfile="a2457.meds",clobber=True,source_selection = False)
 
 except:
     thingtype, value, tb = sys.exc_info()

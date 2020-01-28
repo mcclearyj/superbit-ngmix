@@ -299,9 +299,8 @@ class BITMeasurement():
         Wrapper for astromatic tools to make catalog from provided images.
         This returns catalog for (stacked) detection image
         '''
-        #detection_file, weight_file= self._make_detection_image(outfile_name='A2457_coadd.fits',weightout_name='A2457_coadd.weight.fits')
+        detection_file, weight_file= self._make_detection_image(outfile_name='A2457_coadd.fits',weightout_name='A2457_coadd.weight.fits')
         # Now for the million args...
-        detection_file='./tmp/A2457_coadd.fits'; weight_file='./tmp/A2457_coadd.weight.fits'
         
         config_arg = sextractor_config_path+'sextractor.config'
         param_arg = '-PARAMETERS_NAME '+sextractor_config_path+'sextractor.param'
