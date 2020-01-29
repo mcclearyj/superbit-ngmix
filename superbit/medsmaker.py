@@ -435,7 +435,7 @@ class BITMeasurement():
         meta['magzp_ref'] = magzp
         return meta
 
-    def _calculate_box_size(self,angular_size,size_multiplier = 2.5, min_size = 16, max_size= 64, pixel_scale = 0.206):
+    def _calculate_box_size(self,angular_size,size_multiplier = 2.5, min_size = 16, max_size= 64, pixel_scale = 0.263):
         '''
         Calculate the cutout size for this survey.
 
