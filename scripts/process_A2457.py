@@ -6,7 +6,7 @@ import esutil as eu
 # Get the location of the main superbit package.
 dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0,dir)
-from superbit import medsmaker2
+from superbit import medsmaker
 
 
 science = glob.glob('/users/jmcclear/scratch/A2457_data/c4d_141024_*ooi_r_v1_*.fits'); science.sort()
@@ -18,7 +18,7 @@ weights = [s.replace('ooi','oow') for s in science]; weights.sort()
 darks = [w.replace('oow','ood') for w in weights]; darks.sort()
 """
 try:
-    bm = medsmaker2.BITMeasurement(image_files=science,weight_files=weights, dark_files=darks)
+    bm = medsmaker.BITMeasurement(image_files=science,weight_files=weights, dark_files=darks)
     # The path names should be updated; as written the code also expects all
     # calibration files to be in the same directory
 
