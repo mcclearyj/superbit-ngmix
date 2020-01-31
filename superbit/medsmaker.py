@@ -47,7 +47,7 @@ class BITMeasurement():
         self.dark_files = dark_files
 
 
-    def set_working_dir(self,path=None):
+    def set_working_path(self,path=None):
         if path is None:
             self.work_path = './tmp'
             if not os.path.exists(self.work_path):
@@ -63,7 +63,7 @@ class BITMeasurement():
         else:
             self.calib_path = path
 
-    def set_psf_dir(self,path=None):
+    def set_psf_path(self,path=None):
         if path is None:
             self.psf_path = './tmp/psfex_output'
             if not os.path.exists(self.psf_path):
@@ -248,16 +248,18 @@ class BITMeasurement():
 
         ###### Note that it is necessary to join the individual image/weight files (really the weights)
         ###### into a list for swarping
+        inlist=''.join([self.work_path,'/','inlist']) 
+        wtlist=''.join([self.work_path,'/','wtlist'])
 
-        with open('./inlist', 'w') as filehandle:
+        with open(inlist, 'w') as filehandle:
             for listitem in self.image_files:
                 filehandle.write('%s\n' % listitem)
-        with open('./inlist_weights', 'w') as filehandle:
+        with open(inlist, 'w') as filehandle:
             for listitem in self.weight_files:
                 filehandle.write('%s\n' % listitem)
 
-        image_args = '@./inlist'
-        weight_arg = '-WEIGHT_IMAGE @./inlist_weights'
+        image_args = inlist
+        weight_arg = '-WEIGHT_IMAGE '+wtlist
 
         detection_file = os.path.join(self.work_path,outfile_name) # This is coadd
         weight_file = os.path.join(self.work_path,weightout_name) # This is coadd weight
@@ -271,19 +273,20 @@ class BITMeasurement():
         os.system(cmd)
         return detection_file,weight_file
 
-    def select_sources_from_catalog(self,fullcat,min_size = 3.5,max_size=10.0,size_key='FLUX_RADIUS'):
-        # Choose sources based on quality cuts on this catalog.
-        keep = (self.catalog[size_key] > min_size) & (self.catalog[size_key] < max_size)
+    def select_sources_from_catalog(self,fullcat,min_size = 1.,size_key='KRON_RADIUS',hdu=2):
+        # Choose sources based on quality cuts on this catalog.                                                                            
+        keep = (self.catalog[size_key] > min_size)
         self.catalog = self.catalog[keep.nonzero()[0]]
 
         print("Also selecting on SNR_WIN>10 and SExtractor flags <17...")
-        keep2 = (self.catalog['SNR_WIN']>=10) & (self.catalog['SNR_WIN']<=150) & (self.catalog['CLASS_STAR']<=0.8) & (self.catalog['FLAGS']<17)
+        keep2 = (self.catalog['SNR_WIN']>3.0) & (self.catalog['CLASS_STAR']<=0.7)
         self.catalog = self.catalog[keep2.nonzero()[0]]
 
-        # Also write trimmed catalog to file
+        # Also write trimmed catalog to file                                                                                               
         cmd = 'mv coadd_catalog.fits coadd_catalog_full.fits'
         os.system(cmd)
-        fullcat[2].data = self.catalog
+        
+        fullcat[hdu].data = self.catalog
         fullcat.writeto('coadd_catalog.fits',overwrite=True)
 
     def select_sources_from_gaia():
@@ -311,12 +314,13 @@ class BITMeasurement():
         
         os.system(cmd)
         try:
+            hdu=2
             le_cat = fits.open('coadd_catalog.fits')
-            self.catalog = le_cat[2].data
+            self.catalog = le_cat[hdu].data
             if source_selection is True:
-                self.select_sources_from_catalog(fullcat=le_cat)
+                self.select_sources_from_catalog(fullcat=le_cat,hdu=hdu)
         except:
-            print("coadd catalog could not be loaded; check name?")
+            print("coadd catalog could not be loaded; check name or catalog hdu extension?")
             pdb.set_trace()
             
 
@@ -338,8 +342,7 @@ class BITMeasurement():
         """
 
         self.psfEx_models = []
-        i=0
-        for imagefile in self.image_files:
+        for i,imagefile in enumerate(self.image_files):
             weightfile=self.weight_files[i]
             psfex_model_file = self._make_psf_model(imagefile,weightfile = weightfile,star_reference=catalog_wg)
             # move checkimages to psfex_output
@@ -475,13 +478,58 @@ class BITMeasurement():
         obj_str['KRON_RADIUS'] = catalog['KRON_RADIUS']
         return obj_str
 
+    def run_meds_only(self,outfile = "superbit.meds",catalog='coadd_catalog.fits',source_selection=True):
+        # Make a MEDS, clobbering if needed                                                                                                                                                
+
+        # Set up the paths to the psf and temporary data                                                                                                                                   
+        self.set_working_path()
+        self.set_psf_path()
+        print("I enter run_meds_only")
+        # Image info needs a catalog, a list of images, a list of psfs                                                                                                                     
+        try:
+            self.psfEx_models
+            pass
+        except:
+            self.psfEx_models=[]
+            for i,image in enumerate(self.image_files):
+                psf_name = self.psf_path+'/'+(image.split('/')[-1]).split('.fits')[0]+'_cat.psf'
+                self.psfEx_models.append(psfex.PSFEx(psf_name))
+
+        try:
+            self.catalog
+            pass
+        except:
+            try:
+                le_cat = fits.open(catalog)
+                #self.catalog = le_cat[2].data                                                                                                                                          
+                self.catalog = le_cat[1].data
+                if source_selection is True:
+                    self.select_sources_from_catalog(fullcat=le_cat)
+            except:
+                print("coadd catalog could not be loaded; check name?")
+                pdb.set_trace()
+
+
+        # Make the image_info struct.                                                                                                                                                      
+        image_info = self.make_image_info_struct()
+        # Make the object_info struct.                                                                                                                                                     
+        obj_info = self.make_object_info_struct()
+        # Make the MEDS config file.                                                                                                                                                       
+        meds_config = self.make_meds_config()
+        # Create metadata for MEDS                                                                                                                                                         
+        meta = self._meds_metadata(magzp=30.0)
+        # Finally, make and write the MEDS file.                                                                                                                                           
+        medsObj = meds.maker.MEDSMaker(obj_info,image_info,config=meds_config,psf_data = self.psfEx_models,meta_data=meta)
+        medsObj.write(outfile)
+
+        
 
     def run(self,outfile = "superbit.meds",clobber=False, source_selection = False):
         # Make a MEDS, clobbering if needed
 
         # Set up the paths to the science and calibration data.
-        self.set_working_dir()
-        self.set_psf_dir()
+        self.set_working_path()
+        self.set_psf_path()
 
         # NB: can also read in a pre-existing mask by setting self.mask_file
         #self.make_mask(overwrite=clobber)
