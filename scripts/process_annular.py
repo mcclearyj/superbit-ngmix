@@ -7,7 +7,7 @@ sys.path.insert(0,dir)
 from superbit import mastercat
 
 subcats = glob.glob("./tmp/fitvd-out*.fits")
-sextractor_catalog = "./coadd_catalog_full.fits" 
+sextractor_catalog = "./coadd_catalog.fits" 
 outcat = 'fitvd-out.csv'
 
 try:

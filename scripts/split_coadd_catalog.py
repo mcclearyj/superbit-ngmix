@@ -27,7 +27,7 @@ def select_sources_from_catalog(fullcat,min_size = 1.,size_key='KRON_RADIUS',hdu
 
 def split_cat(catn,hduext=2):
     try:
-        catalog=Table.read(catn,hdu=2)
+        catalog=Table.read(catn,hdu=hduext)
     except:
         catalog=catn
     
@@ -36,7 +36,7 @@ def split_cat(catn,hduext=2):
 
     for i,index in enumerate(indices):
         #start=int(index*10000); end=int(start+9999)
-        start=int(index*100); end=int(start+99)
+        start=int(index*200); end=int(start+200)
         if (i!=indices[-1]):
             outtab_name=''.join(['./tmp/coadd_catalog_',str(int(index)),'.fits'])
             catalog[start:end].write(outtab_name,format='fits',overwrite=True)
@@ -49,9 +49,10 @@ def split_cat(catn,hduext=2):
 
 def main():
 
-    catalog_name='coadd_catalog_full.fits'
-    trimmed_cat=select_sources_from_catalog(catalog_name)
-    split_cat(trimmed_cat)
+    catalog_name='coadd_catalog.fits'
+    #trimmed_cat=select_sources_from_catalog(catalog_name)
+    trimmed_cat=catalog_name
+    split_cat(trimmed_cat,hduext=1)
 
 if __name__ == "__main__":
     import pdb, traceback, sys

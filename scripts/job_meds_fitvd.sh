@@ -4,7 +4,7 @@
 #SBATCH -n 1
 #SBATCH -J meds_fitvd
 #SBATCH -v 
-#SBATCH --array=1005-1587
+#SBATCH --array=1-999
 # Use '%A' for array-job ID, '%J' for job ID and '%a' for task ID
 #SBATCH -o array-job-outputs/arrayjob-%a.out
 #SBATCH -e array-job-outputs/arrayjob-%a.err
